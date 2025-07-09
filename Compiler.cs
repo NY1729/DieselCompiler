@@ -9,11 +9,6 @@ namespace DieselCompiler;
 
 internal class Compiler
 {
-    enum VarType
-    {
-        Variable,
-        Environment
-    }
 
     private static string CompileBlock(Tokens tokens, int start, int end, List<string> vars, List<string> envs)
     {
