@@ -91,26 +91,26 @@ internal class Compiler
                 continue;
             }
 
-            void ifStatement()
+            void ifStatement() // if ( 条件文 ) {}
             {
                 string cond = "";
-                pc++;                    // '(' 
-                pc++;                    // lhs or 条件
+                pc++;                    // pcは '('  を指している
+                pc++;                    // pcは 'lhs or 条件' を指している
                 if (tokens.GetToken(pc + 1) != ")") // 条件式がある場合
                 {
                     // 1) 左辺
                     string lhs = GetValue(pc);
 
                     // 2) 演算子
-                    pc++;
+                    pc++;   // pcは演算子を指している
                     string op = tokens.GetToken(pc);
 
                     // 3) 右辺
-                    pc++;
+                    pc++; // pcは rhs を指している
                     string rhs = GetValue(pc);
 
-                    pc++;
-                    pc++;   // ')' 自体も飛ばす
+                    pc++;   // pcは ')' を指している
+                    pc++;   // pcは '{' を指している
 
                     cond = $"$({op},{lhs},{rhs})";
                 }
@@ -118,8 +118,8 @@ internal class Compiler
                 {
                     string condRaw = tokens.GetToken(pc); // 条件式がない場合はトークンをそのまま使用
                     cond = GetValue(pc);
-                    pc++; // ')'
-                    pc++; // '{' 
+                    pc++; // pcは ')' を指している
+                    pc++; // pcは '{' を指している
                 }
                 // 2) true ブロック
                 int trueStart = pc++;                     // '{' をスキップ
@@ -139,7 +139,7 @@ internal class Compiler
                     pc++;
                 }
 
-                int trueEnd = pc;
+                int trueEnd = pc; // pc は '}' を指している
                 //
                 ++pc; // '}' をスキップ
                 if (trueStart + 1 < trueEnd - 1) // true ブロックが空でない場合
@@ -163,7 +163,7 @@ internal class Compiler
                             branchDepth--; // ブロックの終了
                             if (branchDepth == 0) break; // 最初のブロックが終了したらループを抜ける
                         }
-                    }       // '}'
+                    }
                     int falseEnd = pc;
                     falseCase.Append(CompileBlock(tokens, falseStart + 1, falseEnd - 1, VariableList, EnvList));
                 }
