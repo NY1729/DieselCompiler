@@ -12,7 +12,10 @@ internal class Tokenizer
     private static readonly HashSet<char> Delims = new("(){}[];,");
     private static readonly HashSet<char> OpChars = new("=+-*/!%&~|<>?:.#");
 
-
+    private static readonly HashSet<char> EmptyChars = new()
+    {
+        ' ', '\t', '\n', '\r'
+    };
 
     static public Tokens ParseCode(string Code)
     {
@@ -32,8 +35,7 @@ internal class Tokenizer
 
         for (int i = 0; i < Code.Length; ++i)
         {
-            Char c = Code[i];
-            if (Code[i] == ' ' || Code[i] == '\t' || Code[i] == '\n' || Code[i] == '\r')
+            if (EmptyChars.Contains(Code[i]))
             {   // スペース、タブ、改行.
                 continue;
             }
