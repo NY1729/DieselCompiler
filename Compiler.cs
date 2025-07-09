@@ -27,10 +27,6 @@ internal class Compiler
         for (int pc = 0; pc < tokens.Token.Count; pc++)
         {
 
-
-            /* セミコロンは無視 */
-            if (tokens.GetToken(pc) == ";") continue;
-
             string tk = tokens.GetToken(pc);
 
 
@@ -51,6 +47,17 @@ internal class Compiler
                     {
                         ++pc;
                         EnvList.Add(tokens.GetToken(pc));
+                        continue;
+                    }
+                case "din": // 標準入力を取得する
+                    {
+                        ++pc; // '>>'
+                        ++pc; // 変数名
+                        string variable = tokens.GetToken(pc);
+                        string command = GetType(tokens.GetToken(pc));
+
+                        string SetCommand = $"set{command};{variable};\\";
+                        codeBuilder.Append(SetCommand);
                         continue;
                     }
             }
