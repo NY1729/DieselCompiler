@@ -39,8 +39,45 @@ internal class Compiler
             string tk = tokens.GetToken(pc);
 
 
-            /* ---------- if 文 ---------- */
-            if (tk == "if")
+            switch (tk)
+            {
+                case "if":
+                    {
+                        ifStatement();
+                        continue;
+                    }
+                case "var": // システム変数宣言
+                    {
+                        ++pc;
+                        VariableList.Add(tokens.GetToken(pc));
+                        continue;
+                    }
+                case "env": // 変数宣言
+                    {
+                        ++pc;
+                        EnvList.Add(tokens.GetToken(pc));
+                        continue;
+                    }
+            }
+
+            // 変数と環境変数のチェック
+            if (VariableList.Contains(tk) || EnvList.Contains(tk))
+            {
+                if (tokens.GetToken(pc + 1) == "=")
+                {
+                    // 変数の値をセットする
+                    codeBuilder.Append(SetValue(pc));
+                    pc += 2; // '=' と値をスキップ
+                }
+                else if (tokens.GetToken(pc + 1) == ";")
+                {
+                    // 変数の値を取得する
+                    codeBuilder.Append(GetValue(pc));
+                }
+                continue;
+            }
+
+            void ifStatement()
             {
                 string cond = "";
                 pc++;                    // '(' 
@@ -117,34 +154,6 @@ internal class Compiler
                 }
                 ++pc; // '}' をスキップ
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
-                continue;
-            }
-            else if (tk == "var") // システム変数宣言
-            {
-                ++pc;
-                VariableList.Add(tokens.GetToken(pc));
-                continue;
-            }
-            else if (tk == "env") // 変数宣言
-            {
-                ++pc;
-                EnvList.Add(tokens.GetToken(pc));
-                continue;
-            }
-            if (VariableList.Contains(tk) || EnvList.Contains(tk))
-            {
-                if (tokens.GetToken(pc + 1) == "=")
-                {
-                    // 変数の値をセットする
-                    codeBuilder.Append(SetValue(pc));
-                    pc += 2; // '=' と値をスキップ
-                }
-                else if (tokens.GetToken(pc + 1) == ";")
-                {
-                    // 変数の値を取得する
-                    codeBuilder.Append(GetValue(pc));
-                }
-                continue;
             }
 
             string GetType(string variable)
@@ -154,13 +163,16 @@ internal class Compiler
                 else if (EnvList.Contains(variable))
                     return "env";
                 else
-                    return "";
+                    return "none";
             }
 
             string GetValue(int pc1)
             {
                 string variable = tokens.GetToken(pc1); // 変数名を取得
                 string command = GetType(variable);
+
+                if (command == "none")
+                    return variable; // 変数が存在しない場合はそのまま返す
 
                 string GetCommand = $"$(get{command},{variable})";
                 return GetCommand;
