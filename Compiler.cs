@@ -27,7 +27,7 @@ internal class Compiler
         for (int pc = 0; pc < tokens.Token.Count; pc++)
         {
             string tk = tokens.GetToken(pc);
-
+            if (tk == ";") continue; // セミコロンは無視)
 
             switch (tk)
             {
@@ -67,11 +67,14 @@ internal class Compiler
                     }
                 case "cancel":
                     {
-                        ++pc;
                         codeBuilder.Append("^C^C");
                         continue;
                     }
-
+                case ":":
+                    {
+                        codeBuilder.Append(";");
+                        continue;
+                    }
             }
 
             // 変数と環境変数のチェック
