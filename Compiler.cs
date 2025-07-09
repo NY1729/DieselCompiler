@@ -26,7 +26,7 @@ internal class Compiler
 
         for (int pc = 0; pc < tokens.Token.Count; pc++)
         {
-
+            int delay = 0;
             string tk = tokens.GetToken(pc);
 
 
@@ -51,6 +51,7 @@ internal class Compiler
                     }
                 case "din": // 標準入力を取得する
                     {
+                        ++delay; // 遅延評価を行う
                         ++pc; // '>>'
                         ++pc; // 変数名
                         string variable = tokens.GetToken(pc);
@@ -60,6 +61,19 @@ internal class Compiler
                         codeBuilder.Append(SetCommand);
                         continue;
                     }
+                case "scan":
+                    {
+                        ++pc;
+                        codeBuilder.Append("\\");
+                        continue;
+                    }
+                case "cancel":
+                    {
+                        ++pc;
+                        codeBuilder.Append("^C^C");
+                        continue;
+                    }
+
             }
 
             // 変数と環境変数のチェック
@@ -156,6 +170,22 @@ internal class Compiler
                 }
                 ++pc; // '}' をスキップ
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
+            }
+
+            string WrapAsLazy(string code)
+            {
+                if (delay > 0)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append($"$M=");
+                    sb.Append(code);
+                    return sb.ToString();
+                }
+                else
+                {
+                    return code;
+                }
+
             }
 
             string GetType(string variable)
