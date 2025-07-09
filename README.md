@@ -2,7 +2,7 @@
 
 ## 概要
 
-`DieselCompiler` は、C 風の簡潔なスクリプト言語を Diesel 式へとが変換するコンパイラです。
+`DieselCompiler` は、C 風の簡潔なスクリプト言語を Diesel 式へと変換するコンパイラです。
 
 ## 使用できる命令
 
