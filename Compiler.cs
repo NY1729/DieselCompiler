@@ -61,7 +61,7 @@ internal class Compiler
                         codeBuilder.Append(SetCommand);
                         continue;
                     }
-                case "scan":
+                case "input":
                     {
                         ++pc;
                         codeBuilder.Append("\\");
@@ -172,7 +172,7 @@ internal class Compiler
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
             }
 
-            string WrapAsLazy(string code)
+            string WrapAsDelay(string code)
             {
                 if (delay > 0)
                 {
