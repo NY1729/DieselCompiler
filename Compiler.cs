@@ -26,7 +26,6 @@ internal class Compiler
 
         for (int pc = 0; pc < tokens.Token.Count; pc++)
         {
-            int delay = 0;
             string tk = tokens.GetToken(pc);
 
 
@@ -51,7 +50,6 @@ internal class Compiler
                     }
                 case "din": // 標準入力を取得する
                     {
-                        ++delay; // 遅延評価を行う
                         ++pc; // '>>'
                         ++pc; // 変数名
                         string variable = tokens.GetToken(pc);
@@ -129,7 +127,6 @@ internal class Compiler
                 var trueCase = new StringBuilder();
                 while (branchDepth > 0)
                 {
-                    pc++;
                     if (tokens.GetToken(pc) == "{")
                     {
                         branchDepth++; // 新しいブロックの開始
@@ -139,12 +136,14 @@ internal class Compiler
                         branchDepth--; // ブロックの終了
                         if (branchDepth == 0) break; // 最初のブロックが終了したらループを抜ける
                     }
+                    pc++;
                 }
 
                 int trueEnd = pc;
-
+                //
                 ++pc; // '}' をスキップ
-                trueCase.Append(CompileBlock(tokens, trueStart + 1, trueEnd - 1, VariableList, EnvList));
+                if (trueStart + 1 < trueEnd - 1) // true ブロックが空でない場合
+                    trueCase.Append(CompileBlock(tokens, trueStart + 1, trueEnd - 1, VariableList, EnvList));
                 // 3) else があるか？
                 var falseCase = new StringBuilder();
                 if (pc + 1 < tokens.Token.Count && tokens.GetToken(pc) == "else")
@@ -170,22 +169,6 @@ internal class Compiler
                 }
                 ++pc; // '}' をスキップ
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
-            }
-
-            string WrapAsDelay(string code)
-            {
-                if (delay > 0)
-                {
-                    StringBuilder sb = new StringBuilder();
-                    sb.Append($"$M=");
-                    sb.Append(code);
-                    return sb.ToString();
-                }
-                else
-                {
-                    return code;
-                }
-
             }
 
             string GetType(string variable)
