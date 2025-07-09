@@ -36,7 +36,7 @@ internal class Tokenizer
         for (int i = 0; i < Code.Length; ++i)
         {
             if (EmptyChars.Contains(Code[i]))
-            {   // スペース、タブ、改行.
+            {   // スペース、タブ、改行をスキップ
                 continue;
             }
             stack = "";
@@ -48,6 +48,7 @@ internal class Tokenizer
             }
             else if (char.IsLetterOrDigit(Code[i]))
             {
+                // 文字列を一つのトークンとして扱う
                 while (i < Code.Length && char.IsLetterOrDigit(Code[i]))
                 {
                     stack += Code[i];
@@ -57,8 +58,18 @@ internal class Tokenizer
                 tokens.Token.Add(GetToken(stack));
                 continue;
             }
+            else if (Code[i] == '/' && Code[i + 1] == '/')
+            {
+                // コメントをスキップ
+                while (i < Code.Length && Code[i] != '\n')
+                {
+                    ++i;
+                }
+                continue;
+            }
             else if (OpChars.Contains(Code[i]))
             {
+                // 演算子を一つのトークンとして扱う
                 while (i < Code.Length && OpChars.Contains(Code[i]))
                 {
                     stack += Code[i];
@@ -68,6 +79,7 @@ internal class Tokenizer
                 tokens.Token.Add(GetToken(stack));
                 continue;
             }
+
 
         }
         return tokens;
