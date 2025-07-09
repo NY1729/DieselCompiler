@@ -117,15 +117,15 @@ internal class Compiler
                 }
                 ++pc; // '}' をスキップ
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
-                continue;                 // 余計な追加を防止
+                continue;
             }
-            else if (tk == "var")
+            else if (tk == "var") // システム変数宣言
             {
                 ++pc;
                 VariableList.Add(tokens.GetToken(pc));
                 continue;
             }
-            else if (tk == "env")
+            else if (tk == "env") // 変数宣言
             {
                 ++pc;
                 EnvList.Add(tokens.GetToken(pc));
@@ -165,6 +165,7 @@ internal class Compiler
                 string GetCommand = $"$(get{command},{variable})";
                 return GetCommand;
             }
+
             string SetValue(int pc1)
             {
                 string variable = tokens.GetToken(pc1); // 変数名を取得
