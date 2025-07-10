@@ -9,7 +9,7 @@ namespace DieselCompiler;
 
 internal class Tokenizer
 {
-    private static readonly HashSet<char> Delims = new("(){}[];,");
+    private static readonly HashSet<char> Delims = new("(){}[];:,@");
     private static readonly HashSet<char> OpChars = new("=+-*/!%&~|<>?.#");
 
     private static readonly HashSet<char> EmptyChars = new()
