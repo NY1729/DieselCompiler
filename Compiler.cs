@@ -36,22 +36,27 @@ internal class Compiler
                         ifStatement();
                         continue;
                     }
+                case "nth":
+                    {
+                        nthStatement();
+                        continue;
+                    }
                 case "var": // システム変数宣言
                     {
-                        ++pc;
+                        pc++;
                         VariableList.Add(tokens.GetToken(pc));
                         continue;
                     }
                 case "env": // 変数宣言
                     {
-                        ++pc;
+                        pc++;
                         EnvList.Add(tokens.GetToken(pc));
                         continue;
                     }
                 case "din": // 標準入力を取得する
                     {
-                        ++pc; // '>>'
-                        ++pc; // 変数名
+                        pc++; // '>>'
+                        pc++; // 変数名
                         string variable = tokens.GetToken(pc);
                         string command = GetType(tokens.GetToken(pc));
 
@@ -61,7 +66,7 @@ internal class Compiler
                     }
                 case "input":
                     {
-                        ++pc;
+                        pc++;
                         codeBuilder.Append("\\");
                         continue;
                     }
@@ -169,6 +174,24 @@ internal class Compiler
                 }
                 pc++; // '}' をスキップ
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
+            }
+
+            void nthStatement()
+            {
+                string cond = GetCondition(); // 条件を取得
+                List<string> Cases = new List<string>();
+                pc++; // pcは 'case' を指している
+                while (pc + 1 < tokens.Token.Count && tokens.GetToken(pc) == "case")
+                {
+                    pc++;
+                    Cases.Add(GetCase()); // Caseブロックを取得
+                }
+                codeBuilder.Append($"$M=$(nth,{cond}");
+                for (int i = 0; i < Cases.Count; i++)
+                {
+                    codeBuilder.Append($",{Cases[i]}");
+                }
+                codeBuilder.Append($")");
             }
 
             string GetType(string variable)

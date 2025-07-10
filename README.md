@@ -16,6 +16,7 @@
 | 標準入力         | `input`                 | `\`                                   |
 | 代入             | `x = 10`                | `setvar;x;10;`                        |
 | 条件分岐         | `if( x < 0){foo}{bar} ` | `$M=$(if,$(<,$(getenv,x),0),foo,bar)` |
+| switch ステートメント | `nth(to){case{foo}case{bar}case{baz}}` |  `$M=$(nth,$(getenv,to),foo,bar,baz)` |
 
 ### 宣言
 
