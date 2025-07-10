@@ -12,7 +12,7 @@ internal partial class Compiler
 
     private static readonly HashSet<string> StopSymbol = new()
 {
-    "(", ")", "{", "}", "[", "]", ";", ":", ","
+    "(", ")", "{", "}", "[", "]", ";", ":", ",","=",">","<","!"
 };
     private static Tokens GetSliceTokens(Tokens tokens, int start, int end)
     {
@@ -34,7 +34,7 @@ internal partial class Compiler
         List<string> VariableList = inheritaedVariables ?? new List<string>();
         List<string> EnvList = inheritedEnvironments ?? new List<string>();
         var codeBuilder = new StringBuilder();
-
+        int delay = 0;
         for (int pc = 0; pc < tokens.Token.Count; pc++)
         {
             string tk = tokens.GetToken(pc);
@@ -77,6 +77,7 @@ internal partial class Compiler
                     }
                 case "din": // 標準入力を取得する
                     {
+                        if (delay > 0) delay++;
                         pc++; // pcは '>>' を指している
                         pc++; // pcは 変数名 を指している
                         string variable = tokens.GetToken(pc);
@@ -88,6 +89,8 @@ internal partial class Compiler
                     }
                 case "input":
                     {
+                        if (delay > 0) delay++;
+
                         pc++;
                         codeBuilder.Append("\\");
                         continue;
@@ -110,6 +113,7 @@ internal partial class Compiler
             }
 
 
+
             if (VariableList.Contains(tk) || EnvList.Contains(tk) || double.TryParse(tk, out _)) // 変数名または環境変数名、または整数の場合
             {
 
@@ -118,11 +122,8 @@ internal partial class Compiler
                     string variavle = tokens.GetToken(pc);
 
                     string command = GetType(tokens.GetToken(pc));
-                    int start = pc + 2; // '=' の次のトークンから開始
-                    SkipUntil(); // ';'までスキップ
-                    Tokens sliceTokens = GetSliceTokens(tokens, start, pc);
-
-                    string Value = BuildSetCommand(sliceTokens, VariableList, EnvList);
+                    pc += 2; // '=' の次のトークンから開始
+                    string Value = GetValue(); // 値を取得
                     string SetCommand = $"set{command};{variavle};{Value};";
                     // 変数の値をセットする
                     codeBuilder.Append(SetCommand);
@@ -130,11 +131,7 @@ internal partial class Compiler
                 }
                 else
                 {
-                    int start = pc; // '=' の次のトークンから開始
-                    SkipUntil(); // ';'までスキップ
-                    Tokens sliceTokens = GetSliceTokens(tokens, start, pc);
-
-                    string Value = BuildSetCommand(sliceTokens, VariableList, EnvList);
+                    string Value = GetValue(); // 値を取得
                     codeBuilder.Append(Value);
                 }
                 pc--; //Skipしたシンボルを戻す
@@ -159,7 +156,7 @@ internal partial class Compiler
                 if (tokens.GetToken(pc + 1) != ")") // 条件式がある場合
                 {
                     // 1) 左辺
-                    string lhs = GetValue(pc);
+                    string lhs = GetValue();
 
                     // 2) 演算子
                     pc++;   // pcは演算子を指している
@@ -167,18 +164,16 @@ internal partial class Compiler
 
                     // 3) 右辺
                     pc++; // pcは rhs を指している
-                    string rhs = GetValue(pc);
+                    string rhs = GetValue();
 
-                    pc++;   // pcは ')' を指している
                     pc++;   // pcは '{' を指している
 
                     cond = $"$({op},{lhs},{rhs})";
                 }
                 else
                 {
-                    cond = GetValue(pc); // 条件式がない場合はトークンをそのまま使用
-                    pc++; // pcは ')' を指している
-                    pc++; // pcは '{' を指している
+                    cond = GetValue(); // 条件式がない場合はトークンをそのまま使用
+                    pc++;   // pcは '{' を指している
                 }
                 return cond;
             }
@@ -254,16 +249,14 @@ internal partial class Compiler
                     return "none";
             }
 
-            string GetValue(int pc1)
+            string GetValue()
             {
-                string variable = tokens.GetToken(pc1); // 変数名を取得
-                string command = GetType(variable);
+                int start = pc;
+                SkipUntil(); // ';'までスキップ
+                Tokens sliceTokens = GetSliceTokens(tokens, start, pc - 1);
 
-                if (command == "none")
-                    return variable; // 変数が存在しない場合はそのまま返す
-
-                string GetCommand = $"$(get{command},{variable})";
-                return GetCommand;
+                string Value = BuildSetCommand(sliceTokens, VariableList, EnvList, ref delay);
+                return Value;
             }
 
         }
