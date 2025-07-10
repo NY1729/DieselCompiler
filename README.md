@@ -25,3 +25,15 @@
 env cmd;
 var cmdactive;
 ```
+
+## コード例
+
+```
+env to;
+din >> to;
+if(to == 2){
+    move:;
+}else{
+    select:;
+}
+```
