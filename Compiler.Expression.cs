@@ -24,7 +24,8 @@ namespace DieselCompiler
             // 最高位から解析 (OR)
             dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
             string command = WrapDelay(dieselExpr, ref delay);
-            ++delay;
+            if (delay == 0)
+                ++delay;
             return command;
 
         }
