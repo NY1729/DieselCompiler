@@ -16,7 +16,7 @@ namespace DieselCompiler
 
             // 最高位から解析 (OR)
             string dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
-            return dieselExpr;
+            return $"$M={dieselExpr}";
         }
 
         private static readonly Dictionary<string, string> OpMap = new() //トークン → Diesel 関数名
