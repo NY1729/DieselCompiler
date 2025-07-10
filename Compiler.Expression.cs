@@ -23,14 +23,14 @@ namespace DieselCompiler
             }
             // 最高位から解析 (OR)
             dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
-            string command = WrapDelay(dieselExpr, ref delay);
+            string command = WrapDelay(dieselExpr, delay);
             if (delay == 0)
                 ++delay;
             return command;
 
         }
 
-        private static string WrapDelay(string command, ref int delay)
+        private static string WrapDelay(string command, int delay)
         {
             var commandBuilder = new StringBuilder();
             if (delay > 1)

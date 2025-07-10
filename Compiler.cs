@@ -217,7 +217,7 @@ internal partial class Compiler
                     falseCase = GetCase(); // Falseブロックを取得
                 }
                 --pc; // pcは '}' を指している
-                codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
+                codeBuilder.Append(WrapDelay($"$(if,{cond},{trueCase},{falseCase})", delay));
             }
 
             void nthStatement()
