@@ -75,6 +75,7 @@ internal class Compiler
                         codeBuilder.Append(";");
                         continue;
                     }
+
             }
 
             // 変数と環境変数のチェック
@@ -94,7 +95,7 @@ internal class Compiler
                 continue;
             }
 
-            void ifStatement() // if ( 条件文 ) {}
+            string GetCondition() // Conditionを取得する
             {
                 string cond = "";
                 pc++;                    // pcは '('  を指している
@@ -119,15 +120,18 @@ internal class Compiler
                 }
                 else
                 {
-                    string condRaw = tokens.GetToken(pc); // 条件式がない場合はトークンをそのまま使用
-                    cond = GetValue(pc);
+                    cond = GetValue(pc); // 条件式がない場合はトークンをそのまま使用
                     pc++; // pcは ')' を指している
                     pc++; // pcは '{' を指している
                 }
-                // 2) true ブロック
-                int trueStart = pc++;                     // '{' をスキップ
+                return cond;
+            }
+
+            string GetCase() // Caseブロックを取得する
+            {
+                int CaseStart = pc++;                     // '{' をスキップ
                 int branchDepth = 1; // ブロックの深さを追跡
-                var trueCase = new StringBuilder();
+                var Case = new StringBuilder();
                 while (branchDepth > 0)
                 {
                     if (tokens.GetToken(pc) == "{")
@@ -142,35 +146,28 @@ internal class Compiler
                     pc++;
                 }
 
-                int trueEnd = pc; // pc は '}' を指している
-                //
-                ++pc; // '}' をスキップ
-                if (trueStart + 1 < trueEnd - 1) // true ブロックが空でない場合
-                    trueCase.Append(CompileBlock(tokens, trueStart + 1, trueEnd - 1, VariableList, EnvList));
-                // 3) else があるか？
-                var falseCase = new StringBuilder();
+                int CaseEnd = pc; // pc は '}' を指している
+                                  //
+                pc++; // '}' をスキップ
+                if (CaseStart + 1 < CaseEnd - 1) // Caseブロックが空でない場合
+                    Case.Append(CompileBlock(tokens, CaseStart + 1, CaseEnd - 1, VariableList, EnvList));
+                return Case.ToString();
+
+            }
+
+            void ifStatement() // if ( 条件文 ) {}
+            {
+                string cond = GetCondition(); // 条件を取得
+
+                string trueCase = GetCase(); // Trueブロックを取得
+
+                string falseCase = "";
                 if (pc + 1 < tokens.Token.Count && tokens.GetToken(pc) == "else")
                 {
                     pc++; // 'else' をスキップ
-                    int falseStart = pc++;                     // '{' をスキップ
-                    branchDepth = 1; // ブロックの深さを追跡
-                    while (branchDepth > 0)
-                    {
-                        pc++;
-                        if (tokens.GetToken(pc) == "{")
-                        {
-                            branchDepth++; // 新しいブロックの開始
-                        }
-                        else if (tokens.GetToken(pc) == "}")
-                        {
-                            branchDepth--; // ブロックの終了
-                            if (branchDepth == 0) break; // 最初のブロックが終了したらループを抜ける
-                        }
-                    }
-                    int falseEnd = pc;
-                    falseCase.Append(CompileBlock(tokens, falseStart + 1, falseEnd - 1, VariableList, EnvList));
+                    falseCase = GetCase(); // Falseブロックを取得
                 }
-                ++pc; // '}' をスキップ
+                pc++; // '}' をスキップ
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
             }
 
