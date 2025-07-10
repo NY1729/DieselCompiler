@@ -5,27 +5,18 @@ namespace DieselCompiler
 {
     internal partial class Compiler
     {
-        internal static string BuildSetCommand(ref int pc,
+        internal static string BuildSetCommand(
                                                Tokens tokens,
                                                List<string> vars,
                                                List<string> envs)
         {
-            string lhs = tokens.GetToken(pc);
-            string store = vars.Contains(lhs) ? "var" :
-                           envs.Contains(lhs) ? "env" :
-                           throw new InvalidOperationException($"undeclared variable '{lhs}'");
-
-            if (tokens.GetToken(pc + 1) != "=")
-                throw new InvalidOperationException("'=' expected in assignment");
-
-            int exprStart = pc + 2;
-            int exprEnd = FindExpressionEnd(tokens, exprStart);
+            // 変数名を取得
+            int exprStart = 0;
+            int exprEnd = tokens.Token.Count - 1;
 
             // 最高位から解析 (OR)
             string dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
-
-            pc = exprEnd + 1;   // ';' の直前まで読み終えた
-            return $"set{store};{lhs};{dieselExpr};";
+            return dieselExpr;
         }
 
         private static readonly Dictionary<string, string> OpMap = new() //トークン → Diesel 関数名
@@ -36,7 +27,7 @@ namespace DieselCompiler
             {"+",  "+"  },
             {"-",  "-"  },
             {"*",  "*"  },
-            {"/",  "div"}
+            {"/",  "/"}
         };
 
         private static string ParseOr(Tokens t, int lo, int hi,

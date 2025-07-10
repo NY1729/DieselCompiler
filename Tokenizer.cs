@@ -9,7 +9,7 @@ namespace DieselCompiler;
 
 internal class Tokenizer
 {
-    private static readonly HashSet<char> Delims = new("(){}[];:,");
+    private static readonly HashSet<char> Delims = new("(){}[];,");
     private static readonly HashSet<char> OpChars = new("=+-*/!%&~|<>?.#");
 
     private static readonly HashSet<char> EmptyChars = new()
@@ -46,10 +46,10 @@ internal class Tokenizer
                 tokens.Token.Add(GetToken(stack));
                 continue;
             }
-            else if (char.IsLetterOrDigit(Code[i]))
+            else if (char.IsLetterOrDigit(Code[i]) || Code[i] == '_')
             {
                 // 文字列を一つのトークンとして扱う
-                while (i < Code.Length && char.IsLetterOrDigit(Code[i]))
+                while (i < Code.Length && (char.IsLetterOrDigit(Code[i]) || Code[i] == '_' || Code[i] == '.'))
                 {
                     stack += Code[i];
                     ++i;
