@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace DieselCompiler;
 
-internal class Compiler
+internal partial class Compiler
 {
 
     private static string CompileBlock(Tokens tokens, int start, int end, List<string> vars, List<string> envs)
@@ -89,8 +89,9 @@ internal class Compiler
                 if (tokens.GetToken(pc + 1) == "=")
                 {
                     // 変数の値をセットする
-                    codeBuilder.Append(SetValue(pc));
-                    pc += 2; // '=' と値をスキップ
+                    codeBuilder.Append(
+                        BuildSetCommand(ref pc, tokens, VariableList, EnvList)
+                    ); // '=' と値をスキップ
                 }
                 else if (tokens.GetToken(pc + 1) == ";")
                 {
