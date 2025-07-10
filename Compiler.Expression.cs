@@ -18,31 +18,34 @@ namespace DieselCompiler
             string dieselExpr = "";
             if (exprStart == exprEnd)
             {
-                dieselExpr = ParseFactor(tokens, exprStart, exprEnd, vars, envs, ref delay);
+                dieselExpr = ParseFactor(tokens, exprStart, exprEnd, vars, envs);
                 return dieselExpr; // 変数名がない場合はそのまま返す
             }
             // 最高位から解析 (OR)
-            dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs, ref delay);
-            ++delay; // ディレイを1増やす
-            return $"$M={dieselExpr}";
+            dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
+            string command = WrapDelay(dieselExpr, ref delay);
+            ++delay;
+            return command;
 
         }
 
         private static string WrapDelay(string command, ref int delay)
         {
             var commandBuilder = new StringBuilder();
-            if (delay > 0)
+            if (delay > 1)
             {
                 commandBuilder.Append($"$M="); // ディレイ付きコマンド
                 commandBuilder.Append(GetQuote(delay));
                 commandBuilder.Append(command);
                 commandBuilder.Append(GetQuote(delay));
-
             }
             else
             {
-                commandBuilder.Append(command); // ディレイなしコマンド
+                commandBuilder.Append($"$M=");
+                commandBuilder.Append(command); // ディレイなし
             }
+
+
             return commandBuilder.ToString(); // ディレイなし
         }
 
@@ -64,60 +67,60 @@ namespace DieselCompiler
         };
 
         private static string ParseOr(Tokens t, int lo, int hi,
-                                       List<string> vars, List<string> envs, ref int delay) // 再帰下降パーサ (低→高)
+                                       List<string> vars, List<string> envs) // 再帰下降パーサ (低→高)
         {
             int idx = FindTop(t, lo, hi, "|");
             return idx >= 0
-                ? $"$({OpMap["|"]},{ParseOr(t, lo, idx - 1, vars, envs, ref delay)},{ParseXor(t, idx + 1, hi, vars, envs, ref delay)})"
-                : ParseXor(t, lo, hi, vars, envs, ref delay);
+                ? $"$({OpMap["|"]},{ParseOr(t, lo, idx - 1, vars, envs)},{ParseXor(t, idx + 1, hi, vars, envs)})"
+                : ParseXor(t, lo, hi, vars, envs);
         }
 
         private static string ParseXor(Tokens t, int lo, int hi,
-                                        List<string> vars, List<string> envs, ref int delay)
+                                        List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "^");
             return idx >= 0
-                ? $"$({OpMap["^"]},{ParseXor(t, lo, idx - 1, vars, envs, ref delay)},{ParseAnd(t, idx + 1, hi, vars, envs, ref delay)})"
-                : ParseAnd(t, lo, hi, vars, envs, ref delay);
+                ? $"$({OpMap["^"]},{ParseXor(t, lo, idx - 1, vars, envs)},{ParseAnd(t, idx + 1, hi, vars, envs)})"
+                : ParseAnd(t, lo, hi, vars, envs);
         }
 
         private static string ParseAnd(Tokens t, int lo, int hi,
-                                        List<string> vars, List<string> envs, ref int delay)
+                                        List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "&");
             return idx >= 0
-                ? $"$({OpMap["&"]},{ParseAnd(t, lo, idx - 1, vars, envs, ref delay)},{ParseAddSub(t, idx + 1, hi, vars, envs, ref delay)})"
-                : ParseAddSub(t, lo, hi, vars, envs, ref delay);
+                ? $"$({OpMap["&"]},{ParseAnd(t, lo, idx - 1, vars, envs)},{ParseAddSub(t, idx + 1, hi, vars, envs)})"
+                : ParseAddSub(t, lo, hi, vars, envs);
         }
 
         private static string ParseAddSub(Tokens t, int lo, int hi,
-                                           List<string> vars, List<string> envs, ref int delay)
+                                           List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "+", "-");
             return idx >= 0
-                ? $"$({OpMap[t.GetToken(idx)]},{ParseAddSub(t, lo, idx - 1, vars, envs, ref delay)},{ParseMulDiv(t, idx + 1, hi, vars, envs, ref delay)})"
-                : ParseMulDiv(t, lo, hi, vars, envs, ref delay);
+                ? $"$({OpMap[t.GetToken(idx)]},{ParseAddSub(t, lo, idx - 1, vars, envs)},{ParseMulDiv(t, idx + 1, hi, vars, envs)})"
+                : ParseMulDiv(t, lo, hi, vars, envs);
         }
 
         private static string ParseMulDiv(Tokens t, int lo, int hi,
-                                           List<string> vars, List<string> envs, ref int delay)
+                                           List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "*", "/");
             return idx >= 0
-                ? $"$({OpMap[t.GetToken(idx)]},{ParseMulDiv(t, lo, idx - 1, vars, envs, ref delay)},{ParseFactor(t, idx + 1, hi, vars, envs, ref delay)})"
-                : ParseFactor(t, lo, hi, vars, envs, ref delay);
+                ? $"$({OpMap[t.GetToken(idx)]},{ParseMulDiv(t, lo, idx - 1, vars, envs)},{ParseFactor(t, idx + 1, hi, vars, envs)})"
+                : ParseFactor(t, lo, hi, vars, envs);
         }
 
         private static string ParseFactor(Tokens t, int lo, int hi,
-                                          List<string> vars, List<string> envs, ref int delay)
+                                          List<string> vars, List<string> envs)
         {
             // 括弧
             if (t.GetToken(lo) == "(" && t.GetToken(hi) == ")")
-                return ParseOr(t, lo + 1, hi - 1, vars, envs, ref delay);
+                return ParseOr(t, lo + 1, hi - 1, vars, envs);
 
             string s = t.GetToken(lo);
-            if (vars.Contains(s)) return WrapDelay($"$(getvar,{s})", ref delay);
-            if (envs.Contains(s)) return WrapDelay($"$(getenv,{s})", ref delay);
+            if (vars.Contains(s)) return $"$(getvar,{s})";
+            if (envs.Contains(s)) return $"$(getenv,{s})";
             return s; // 数値・シンボル等
         }
 
