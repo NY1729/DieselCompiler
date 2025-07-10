@@ -102,7 +102,11 @@ internal partial class Compiler
                         codeBuilder.Append(";");
                         continue;
                     }
-
+                case "Loop":
+                    {
+                        codeBuilder.Append("*^C^C");
+                        continue;
+                    }
             }
 
 
@@ -199,7 +203,6 @@ internal partial class Compiler
                 }
 
                 int CaseEnd = pc; // pc は '}' を指している
-                                  //
                 pc++; // '}' をスキップ
                 if (CaseStart + 1 < CaseEnd - 1) // Caseブロックが空でない場合
                     Case.Append(CompileBlock(tokens, CaseStart + 1, CaseEnd - 1, VariableList, EnvList));
@@ -219,7 +222,7 @@ internal partial class Compiler
                     pc++; // 'else' をスキップ
                     falseCase = GetCase(); // Falseブロックを取得
                 }
-                pc++; // '}' をスキップ
+                --pc; // pcは '}' を指している
                 codeBuilder.Append($"$M=$(if,{cond},{trueCase},{falseCase})");
             }
 
