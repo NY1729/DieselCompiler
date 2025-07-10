@@ -57,3 +57,28 @@ non:@-横,-縦:;
 ```
 ^C^Csetenv;横;\setenv;縦;\_id;\_rectang;non;@$M=$(/,$(getenv,横),2),$M=$(/,$(getenv,縦),2);non;@-$M=$(getenv,横),-$M=$(getenv,縦);
 ```
+
+### スクリプト言語
+
+```
+cancel;
+
+area:o:;
+input;
+
+env 直径;
+var perimeter;
+
+直径 = perimeter / 3.141592654;
+din >> 直径
+
+change:
+@:::
+直径 / 2:;
+```
+
+### コンパイル後
+
+```
+^C^Carea;o;\setenv;直径;$M=$(/,$(getvar,perimeter),3.141592654);setenv;直径;\change;@;;;$M="$(/,$(getenv,直径),2)";
+```
