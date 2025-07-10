@@ -12,7 +12,7 @@ internal partial class Compiler
 
     private static readonly HashSet<string> StopSymbol = new()
 {
-    "(", ")", "{", "}", "[", "]", ";", ":", ",","=",">","<","!"
+    "(", ")", "{", "}", "[", "]", ";", ":", ",","==",">=",">","<=","<","!="
 };
     private static Tokens GetSliceTokens(Tokens tokens, int start, int end)
     {
@@ -159,7 +159,6 @@ internal partial class Compiler
                     string lhs = GetValue();
 
                     // 2) 演算子
-                    pc++;   // pcは演算子を指している
                     string op = tokens.GetToken(pc);
 
                     // 3) 右辺
@@ -252,7 +251,7 @@ internal partial class Compiler
             string GetValue()
             {
                 int start = pc;
-                SkipUntil(); // ';'までスキップ
+                SkipUntil(); // StopSymbolまでスキップ
                 Tokens sliceTokens = GetSliceTokens(tokens, start, pc - 1);
 
                 string Value = BuildSetCommand(sliceTokens, VariableList, EnvList, ref delay);
