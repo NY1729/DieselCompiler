@@ -64,10 +64,21 @@ internal partial class Compiler
                         EnvList.Add(tokens.GetToken(pc));
                         continue;
                     }
+                case "dout":
+                    {
+                        pc++; // pcは '<<' を指している
+                        pc++; // pcは 出力内容 を指している
+                        for (; pc < tokens.Token.Count && tokens.GetToken(pc) != ";"; pc++)
+                        {
+                            codeBuilder.Append(tokens.GetToken(pc));
+                        }
+                        codeBuilder.Append("^X"); // 出力の終端を示す
+                        continue;
+                    }
                 case "din": // 標準入力を取得する
                     {
-                        pc++; // '>>'
-                        pc++; // 変数名
+                        pc++; // pcは '>>' を指している
+                        pc++; // pcは 変数名 を指している
                         string variable = tokens.GetToken(pc);
                         string command = GetType(tokens.GetToken(pc));
 
