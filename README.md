@@ -17,7 +17,7 @@
 | 標準入力              | `input`                                | `\`                                         |
 | 代入                  | `x = 10`                               | `setvar;x;10;`                              |
 | 式                    | `l = 2 * r * 3.14`                     | `setenv;l;$M=$(*,$(*,2,$(getenv,r)),3.14);` |
-| 条件分岐              | `if( x < 0){foo}{bar} `                | `$M=$(if,$(<,$(getenv,x),0),foo,bar)`       |
+| 条件分岐              | `if( x < 0 ){foo}{bar} `               | `$M=$(if,$(<,$(getenv,x),0),foo,bar)`       |
 | switch ステートメント | `nth(to){case{foo}case{bar}case{baz}}` | `$M=$(nth,$(getenv,to),foo,bar,baz)`        |
 | 繰り返し              | `Loop`                                 | `*^C^C`                                     |
 
