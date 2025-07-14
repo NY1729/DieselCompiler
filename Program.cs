@@ -12,7 +12,8 @@ using (StreamReader file = new StreamReader(path, Encoding.GetEncoding("utf-8"))
     // トークン化
     Tokens tokens = Tokenizer.ParseCode(Codes);
     // コンパイル
-    string compiledCode = Compiler.OutCompiledCode(tokens);
+    Compiler compiler = new Compiler();
+    string compiledCode = compiler.OutCompiledCode(tokens);
     // 表示
     Console.WriteLine(compiledCode);
 }

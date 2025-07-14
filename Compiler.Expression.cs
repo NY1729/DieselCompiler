@@ -6,11 +6,11 @@ namespace DieselCompiler
 {
     internal partial class Compiler
     {
-        internal static string BuildSetCommand(
+        internal string BuildSetCommand(
                                                Tokens tokens,
                                                List<string> vars,
-                                               List<string> envs,
-                                               ref int delay)
+                                               List<string> envs
+                                               )
         {
             // 変数名を取得
             int exprStart = 0;
