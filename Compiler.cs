@@ -30,6 +30,18 @@ namespace DieselCompiler
 
 
 
+        Dictionary<string, int> GetDelay = new Dictionary<string, int>()
+        {
+            {"cmdactive", 0}, // コマンドがアクティブな状態かどうか
+        }; // 変数がどれぐらい遅延しているのかを保持する
+
+        private void AddDelay(int d)
+        {
+            foreach (var key in GetDelay.Keys.ToList())
+            {
+                GetDelay[key] += d;
+            }
+        }
         public string OutCompiledCode(Tokens tokens, List<string>? inheritaedVariables = null, List<string>? inheritedEnvironments = null)
         {
             List<string> VariableList = inheritaedVariables ?? new List<string>();
@@ -45,13 +57,13 @@ namespace DieselCompiler
                 {
                     case "if":
                         {
-                            ++delay;
+                            AddDelay(2); // 初期ディレイを追加
                             ifStatement();
                             continue;
                         }
                     case "nth":
                         {
-                            ++delay;
+                            AddDelay(2); // 初期ディレイを追加
                             nthStatement();
                             continue;
                         }
@@ -64,7 +76,9 @@ namespace DieselCompiler
                     case "env": // 変数宣言
                         {
                             pc++;
-                            EnvList.Add(tokens.GetToken(pc));
+                            string variable = tokens.GetToken(pc);
+                            GetDelay[variable] = 0; // 初期ディレイを設定
+                            EnvList.Add(variable);
                             continue;
                         }
                     case "dout":
@@ -85,7 +99,7 @@ namespace DieselCompiler
                             pc++; // pcは 変数名 を指している
                             string variable = tokens.GetToken(pc);
                             string command = GetType(tokens.GetToken(pc));
-
+                            GetDelay[variable] += 1; // 入力のディレイを追加
                             string SetCommand = $"set{command};{variable};\\";
                             codeBuilder.Append(SetCommand);
                             continue;
@@ -93,7 +107,7 @@ namespace DieselCompiler
                     case "input":
                         {
                             if (delay > 0) delay++;
-
+                            GetDelay["cmdactive"] += 1; // 入力のディレイを追加
                             pc++;
                             codeBuilder.Append("\\");
                             continue;

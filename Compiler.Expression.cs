@@ -12,6 +12,10 @@ namespace DieselCompiler
                                                List<string> envs
                                                )
         {
+            if (delay > 0)
+            {
+                delay = 0; // 初期ディレイを設定
+            }
             // 変数名を取得
             int exprStart = 0;
             int exprEnd = tokens.Token.Count - 1;
@@ -24,8 +28,6 @@ namespace DieselCompiler
             // 最高位から解析 (OR)
             dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
             string command = WrapDelay(dieselExpr, delay);
-            if (delay == 0)
-                ++delay;
             return command;
 
         }
@@ -33,7 +35,7 @@ namespace DieselCompiler
         private static string WrapDelay(string command, int delay)
         {
             var commandBuilder = new StringBuilder();
-            if (delay > 1)
+            if (delay >= 0)
             {
                 commandBuilder.Append($"$M="); // ディレイ付きコマンド
                 commandBuilder.Append(GetQuote(delay));
@@ -42,7 +44,6 @@ namespace DieselCompiler
             }
             else
             {
-                commandBuilder.Append($"$M=");
                 commandBuilder.Append(command); // ディレイなし
             }
 
@@ -52,6 +53,7 @@ namespace DieselCompiler
 
         private static string GetQuote(int delay)
         {
+            if (delay <= 0) return "";
             int count = (1 << (delay - 1)) - 1;
             return new string('"', count);
         }
@@ -67,7 +69,7 @@ namespace DieselCompiler
             {"/",  "/"}
         };
 
-        private static string ParseOr(Tokens t, int lo, int hi,
+        private string ParseOr(Tokens t, int lo, int hi,
                                        List<string> vars, List<string> envs) // 再帰下降パーサ (低→高)
         {
             int idx = FindTop(t, lo, hi, "|");
@@ -76,7 +78,7 @@ namespace DieselCompiler
                 : ParseXor(t, lo, hi, vars, envs);
         }
 
-        private static string ParseXor(Tokens t, int lo, int hi,
+        private string ParseXor(Tokens t, int lo, int hi,
                                         List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "^");
@@ -85,7 +87,7 @@ namespace DieselCompiler
                 : ParseAnd(t, lo, hi, vars, envs);
         }
 
-        private static string ParseAnd(Tokens t, int lo, int hi,
+        private string ParseAnd(Tokens t, int lo, int hi,
                                         List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "&");
@@ -94,7 +96,7 @@ namespace DieselCompiler
                 : ParseAddSub(t, lo, hi, vars, envs);
         }
 
-        private static string ParseAddSub(Tokens t, int lo, int hi,
+        private string ParseAddSub(Tokens t, int lo, int hi,
                                            List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "+", "-");
@@ -103,7 +105,7 @@ namespace DieselCompiler
                 : ParseMulDiv(t, lo, hi, vars, envs);
         }
 
-        private static string ParseMulDiv(Tokens t, int lo, int hi,
+        private string ParseMulDiv(Tokens t, int lo, int hi,
                                            List<string> vars, List<string> envs)
         {
             int idx = FindTop(t, lo, hi, "*", "/");
@@ -112,7 +114,7 @@ namespace DieselCompiler
                 : ParseFactor(t, lo, hi, vars, envs);
         }
 
-        private static string ParseFactor(Tokens t, int lo, int hi,
+        private string ParseFactor(Tokens t, int lo, int hi,
                                           List<string> vars, List<string> envs)
         {
             // 括弧
@@ -120,6 +122,13 @@ namespace DieselCompiler
                 return ParseOr(t, lo + 1, hi - 1, vars, envs);
 
             string s = t.GetToken(lo);
+            if (GetDelay.ContainsKey(s)) // 変数名がディレイを持つ場合
+            {
+                GetDelay[s] += 1; // ディレイを追加
+                if (delay >= 0)          // 条件ではないとき
+                    delay = Math.Max(GetDelay[s], delay);
+
+            }
             if (vars.Contains(s)) return $"$(getvar,{s})";
             if (envs.Contains(s)) return $"$(getenv,{s})";
             return s; // 数値・シンボル等
