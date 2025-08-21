@@ -4,14 +4,16 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using static DieselCompiler.Compiler;
 
 namespace DieselCompiler
 {
-
+    using Delay = Dictionary<string, int>;
     internal partial class Compiler
     {
-        int base_delay = 0; // 基本ディレイ
-        int delay = 0;
+        int max_delay = 0;
+        bool inJudge = false;
+
         private static readonly HashSet<string> StopSymbol = new HashSet<string>()
 {
     "(", ")", "{", "}", "[", "]", ";", ":", ",","==",">=",">","<=","<","!="
@@ -23,23 +25,59 @@ namespace DieselCompiler
 
             return new Tokens(tokens.Token.GetRange(start, end - start + 1), tokens.TokenList);
         }
-        private string CompileBlock(Tokens tokens, int start, int end, List<string> vars, List<string> envs)
+        private string CompileBlock(Tokens tokens, int start, int end, List<string> vars, List<string> envs, int depth)
         {
             Tokens sliceTokens = GetSliceTokens(tokens, start, end);
-            return OutCompiledCode(sliceTokens, vars, envs);
+            Compiler compiler = new Compiler();
+            string code = compiler.OutCompiledCode(sliceTokens, out PendingDelay, vars, envs, this.GetDelay, depth);
+            UpdateDelay(ref UpdatedDelay, PendingDelay);
+            return code;
         }
 
 
 
-        Dictionary<string, int> GetDelay = new Dictionary<string, int>()
+        private void UpdateDelay(ref Delay currentDelay, Delay updateDelay)
         {
-            {"cmdactive", 0}, // コマンドがアクティブな状態かどうか
+
+            foreach (KeyValuePair<string, int> delay in updateDelay)
+            {
+                if (currentDelay.ContainsKey(delay.Key))
+                {
+                    if (currentDelay[delay.Key] < delay.Value)
+                    {
+                        currentDelay[delay.Key] = delay.Value;
+                    }
+                }
+                else
+                {
+                    currentDelay[delay.Key] = delay.Value;
+                }
+
+            }
+        }
+
+        Delay UpdatedDelay = new Delay();
+
+        Delay PendingDelay = new Delay();
+
+        Delay GetDelay = new Delay
+        {
+            ["cmdactive"] = 0, // コマンドがアクティブな状態かどうか
         }; // 変数がどれぐらい遅延しているのかを保持する
 
-        public string OutCompiledCode(Tokens tokens, List<string>? inheritaedVariables = null, List<string>? inheritedEnvironments = null)
+        public string OutCompiledCode(Tokens tokens)
+        {
+            Delay _;
+            return OutCompiledCode(tokens, out _);
+        }
+        public string OutCompiledCode(Tokens tokens, out Delay PendingDelay, List<string> inheritaedVariables = null, List<string> inheritedEnvironments = null, Delay inheritedGetDelay = null, int depth = 0)
         {
             List<string> VariableList = inheritaedVariables ?? new List<string>();
             List<string> EnvList = inheritedEnvironments ?? new List<string>();
+            if (inheritedGetDelay != null)
+            {
+                this.GetDelay = new Delay(inheritedGetDelay);
+            }
             var codeBuilder = new StringBuilder();
 
             for (int pc = 0; pc < tokens.Token.Count; pc++)
@@ -51,7 +89,6 @@ namespace DieselCompiler
                 {
                     case "if":
                         {
-
                             ifStatement();
                             continue;
                         }
@@ -87,19 +124,17 @@ namespace DieselCompiler
                         }
                     case "din": // 標準入力を取得する
                         {
-                            if (delay > 0) delay++;
                             pc++; // pcは '>>' を指している
                             pc++; // pcは 変数名 を指している
                             string variable = tokens.GetToken(pc);
                             string command = GetType(tokens.GetToken(pc));
-                            GetDelay[variable] += 1 + base_delay; // 入力のディレイを追加
+                            GetDelay[variable] += 1; // 入力のディレイを追加
                             string SetCommand = $"set{command};{variable};\\";
                             codeBuilder.Append(SetCommand);
                             continue;
                         }
                     case "input":
                         {
-                            if (delay > 0) delay++;
                             GetDelay["cmdactive"] += 1; // 入力のディレイを追加
                             pc++;
                             codeBuilder.Append("\\");
@@ -130,7 +165,10 @@ namespace DieselCompiler
                     if (tokens.GetToken(pc + 1) == "=")
                     {
                         string variavle = tokens.GetToken(pc);
-                        GetDelay[variavle] += 1 + base_delay; // 変数のディレイを追加
+                        if (depth > 0)
+                        {
+                            GetDelay[variavle] += depth;
+                        }
                         string command = GetType(tokens.GetToken(pc));
                         pc += 2; // '=' の次のトークンから開始
                         string Value = GetValue(); // 値を取得
@@ -142,8 +180,7 @@ namespace DieselCompiler
                     else
                     {
                         string Value = GetValue(); // 値を取得
-                        string command = WrapDelay(Value, delay);
-                        codeBuilder.Append(command);
+                        codeBuilder.Append(Value);
                     }
                     pc--; //Skipしたシンボルを戻す
                     continue;
@@ -161,6 +198,7 @@ namespace DieselCompiler
                 }
                 string GetCondition() // Conditionを取得する
                 {
+                    inJudge = true;
                     string cond = "";
                     pc++;                    // pcは '('  を指している
                     pc++;                    // pcは 'lhs or 条件' を指している
@@ -183,6 +221,7 @@ namespace DieselCompiler
                         cond = lhs; // 条件式がない場合はトークンをそのまま使用
                         pc++;   // pcは '{' を指している
                     }
+                    inJudge = false;
                     return cond;
                 }
 
@@ -208,16 +247,20 @@ namespace DieselCompiler
                     int CaseEnd = pc; // pc は '}' を指している
                     pc++; // '}' をスキップ
                     if (CaseStart + 1 < CaseEnd - 1) // Caseブロックが空でない場合
-                        Case.Append(CompileBlock(tokens, CaseStart + 1, CaseEnd - 1, VariableList, EnvList));
+                        Case.Append(CompileBlock(tokens, CaseStart + 1, CaseEnd - 1, VariableList, EnvList, depth));
                     return Case.ToString();
 
                 }
 
                 void ifStatement() // if ( 条件文 ) {}
                 {
+                    max_delay = 0;
                     string cond = GetCondition(); // 条件を取得
-                    int cond_delay = delay;
+                    int cond_delay = max_delay + 1;
+
+                    depth += 1;
                     string trueCase = GetCase(); // Trueブロックを取得
+
                     string falseCase = "";
                     if (pc + 1 < tokens.Token.Count && tokens.GetToken(pc) == "else")
                     {
@@ -225,34 +268,35 @@ namespace DieselCompiler
                         falseCase = GetCase(); // Falseブロックを取得
                     }
                     --pc; // pcは '}' を指している
-                    codeBuilder.Append(WrapDelay($"$(if,{cond},{trueCase},{falseCase})", cond_delay));
+                    depth -= 1;
+                    UpdateDelay(ref GetDelay, UpdatedDelay);
+                    codeBuilder.Append(WrapDelay($"$(if,{cond},{trueCase},{falseCase})", cond_delay, depth));
 
                 }
 
                 void nthStatement()
                 {
-                    int current_delay = delay;
+                    max_delay = 0;
                     var nthCommand = new StringBuilder();
                     string cond = GetCondition(); // 条件を取得
+                    int cond_delay = max_delay;
+
+                    depth += 1;
                     List<string> Cases = new List<string>();
                     pc++; // pcは 'case' を指している
-                    int stacked_delay = delay;
                     while (pc + 1 < tokens.Token.Count && tokens.GetToken(pc) == "case")
                     {
                         pc++;
                         Cases.Add(GetCase()); // Caseブロックを取得
-                        stacked_delay = Math.Max(delay, stacked_delay);
-                        delay = current_delay;
                     }
-                    delay = current_delay;
                     nthCommand.Append($"$(nth,{cond}");
                     for (int i = 0; i < Cases.Count; i++)
                     {
                         nthCommand.Append($",{Cases[i]}");
                     }
                     nthCommand.Append($")");
-                    codeBuilder.Append(WrapDelay(nthCommand.ToString(), delay));
-                    delay = stacked_delay;
+                    codeBuilder.Append(WrapDelay(nthCommand.ToString(), cond_delay, depth));
+                    depth -= 1;
                 }
 
                 string GetType(string variable)
@@ -275,12 +319,12 @@ namespace DieselCompiler
                     }
                     Tokens sliceTokens = GetSliceTokens(tokens, start, pc - 1);
 
-                    string Value = BuildSetCommand(sliceTokens, VariableList, EnvList);
+                    string Value = BuildSetCommand(sliceTokens, VariableList, EnvList, depth);
                     return Value;
                 }
 
             }
-
+            PendingDelay = GetDelay;
             return codeBuilder.ToString();
         }
     }

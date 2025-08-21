@@ -9,10 +9,10 @@ namespace DieselCompiler
         internal string BuildSetCommand(
                                                Tokens tokens,
                                                List<string> vars,
-                                               List<string> envs
+                                               List<string> envs,
+                                                int depth
                                                )
         {
-            delay = 0; // 初期ディレイを設定
             // 変数名を取得
             int exprStart = 0;
             int exprEnd = tokens.Token.Count - 1;
@@ -24,20 +24,25 @@ namespace DieselCompiler
             }
             // 最高位から解析 (OR)
             dieselExpr = ParseOr(tokens, exprStart, exprEnd, vars, envs);
-            return dieselExpr;
+            string command = dieselExpr;
+            if (!inJudge)
+            {
+                command = WrapDelay(command, max_delay, depth);
+            }
+
+            return command;
 
         }
 
-        private string WrapDelay(string command, int delay)
+        private static string WrapDelay(string command, int delay, int depth)
         {
-            int d = delay + base_delay;
             var commandBuilder = new StringBuilder();
-            if (d >= 0)
+            if (delay > 0)
             {
                 commandBuilder.Append($"$M="); // ディレイ付きコマンド
-                commandBuilder.Append(GetQuote(d));
+                commandBuilder.Append(GetQuote(delay, depth));
                 commandBuilder.Append(command);
-                commandBuilder.Append(GetQuote(d));
+                commandBuilder.Append(GetQuote(delay, depth));
             }
             else
             {
@@ -48,14 +53,14 @@ namespace DieselCompiler
             return commandBuilder.ToString(); // ディレイなし
         }
 
-        private static string GetQuote(int delay)
+        private static string GetQuote(int delay, int depth)
         {
             if (delay <= 0) return "";
-            int count = (1 << (delay - 1)) - 1;
+            int count = (1 << (delay - 1 + depth * 2)) - 1;
             return new string('"', count);
         }
 
-        private static readonly Dictionary<string, string> OpMap = new() //トークン → Diesel 関数名
+        private static readonly Dictionary<string, string> OpMap = new Dictionary<string, string>() //トークン → Diesel 関数名
         {
             {"|",  "or" },
             {"^",  "xor"},
@@ -119,13 +124,11 @@ namespace DieselCompiler
                 return ParseOr(t, lo + 1, hi - 1, vars, envs);
 
             string s = t.GetToken(lo);
-            if (GetDelay.ContainsKey(s)) // 変数名がディレイを持つ場合
+            if (vars.Contains(s) || envs.Contains(s))
             {
-                GetDelay[s] += 1; // ディレイを追加
-                if (delay >= 0)          // 条件ではないとき
-                    delay = Math.Max(GetDelay[s], delay);
-
+                max_delay = Math.Max(max_delay, GetDelay[s]);
             }
+
             if (vars.Contains(s)) return $"$(getvar,{s})";
             if (envs.Contains(s)) return $"$(getenv,{s})";
             return s; // 数値・シンボル等

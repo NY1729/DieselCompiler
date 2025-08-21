@@ -82,3 +82,61 @@ change:
 ```
 ^C^Carea;o;\setenv;直径;$M=$(/,$(getvar,perimeter),3.141592654);setenv;直径;\change;@;;;$M="$(/,$(getenv,直径),2)";
 ```
+
+### スクリプト言語
+
+```
+var cmdactive;
+env selected;
+env cmd;
+env sl;
+
+if(cmdactive){	// コマンドが実行中かどうか
+	cancel;		// 実行していたらいったんキャンセル
+	select:;
+	if(selected){ 
+		p::;	// 事前に選択されていたらそれを選択
+	}else{ 
+		sl = 1;	// そうでない場合、slフラグを立てる
+	}
+}else{
+	select:;
+	if(cmdactive){ //選択されていないとselectコマンドが立ち上がったまま,つまりcmdactive == 1
+		sl = 1;	// 選択されていない場合, slフラグを立てる
+	}
+}
+
+cmd = cmd | 4;
+
+if(sl){			// slフラグが立っているなら,
+	sl = 0;
+	selected = 0;
+	input;		// ユーザー入力をする
+}
+selected = 1;	// 入力が終わったということはオブジェクトが選択された
+
+nth(cmd & 3){	
+	case{
+	}
+	case{
+		m;
+	}
+	case{
+		co:p:m:
+	}
+	case{
+		s;
+	}
+}
+
+p::
+input;
+.y:;
+@:;
+```
+
+### コンパイル後
+
+```
+$M=$(if,$(getvar,cmdactive),^C^Cselect;$M="""$(if,$(getenv,selected),p;;,'setenv;sl;1;)""",select;$M="""$(if,$(getvar,cmdactive),'setenv;sl;1;,)""")'setenv;cmd;$(or,$(getenv,cmd),4);$M="""$(if,$(getenv,sl),'setenv;sl;0;'setenv;selected;0;\,)"""'setenv;selected;1;$(nth,$(and,$(getenv,cmd),3),,m,co;p;m;,s)p;;\.y;@;
+```
