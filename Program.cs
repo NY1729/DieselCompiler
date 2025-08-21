@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using DieselCompiler;
 
-string path = "C:\\work\\C\\DieselCompiler\\DieselCompiler\\DieselCompiler\\code.txt";
+string path = "./code.txt";
 
 using (StreamReader file = new StreamReader(path, Encoding.GetEncoding("utf-8")))
 {
